@@ -1,6 +1,13 @@
 import distrib
 import numpy as np
 import queue
+from enum import Enum
+class State(Enum):
+    idle = 0
+    ready_to_transmit = 1
+    waiting_to_transmit = 2
+    transmitting = 3
+
 class Node:
 
     def __init__(self, seed=None):
@@ -10,16 +17,16 @@ class Node:
         self.sifs_duration = 2
         self.frame_distribution = distrib.generateDistribution(200, 10, seed=seed)
         self.frame_idx = 0
-        self.ready = False
+        self.state = State.idle
         self.queue = queue.Queue()
 
     def check_packet_ready(self, slot):
         if slot == self.frame_distribution[self.frame_idx]:
             self.queue.put(slot)
-        self.ready = not self.queue.empty()
-
-    def is_ready(self, slot):
-        return self.ready
+        if not self.queue.empty():
+            self.state = State.ready_to_transmit
+        else:
+            self.state = State.idle
 
     def calc_backoff(self):
         self.backoff = np.random.randint(0, self.cw-1)
