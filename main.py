@@ -55,5 +55,7 @@ for slot in range(0, max_slots):
     if a.state == State.transmitting and c.state == State.transmitting:
         #collision
         print("collision")
+        a.cw_0 = a.cw_0 * 2
+        c.cw_0 = c.cw_0 * 2
     if a.state == State.transmitting or c.state == State.transmitting:
         channel.is_idle = False
