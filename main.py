@@ -14,12 +14,12 @@ def wrapper(sim_params):
     columns = ['frame_rate', 'collisions', 'a_succ', 'c_succ', 'a_thruput', 'c_thruput']
     data = list()
     for frame_rate in frame_rates:
-        data.append(main(sim_params,frame_rate))
+        data.append(Scenario1_CSMA(sim_params,frame_rate))
     df = pd.DataFrame(data=data, columns=columns)
     plot_wrapper(df)
 
 
-def main(sim_params, frame_rate):
+def Scenario1_CSMA(sim_params, frame_rate):
     
     A = Node(sim_params, frame_rate, seed=3)
     C = Node(sim_params, frame_rate, seed=5)
