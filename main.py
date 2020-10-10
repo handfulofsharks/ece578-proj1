@@ -1,28 +1,42 @@
 import argparse
 import math
 
-from channel import Channel
-from node import Node, State
+import numpy as np
 import pandas as pd
 
+from channel import Channel
+from node import Node, State
 from plot_wrapper import plot_wrapper
 
 def wrapper(sim_params):
     # Frame rates are declared in project outline.
     frame_rates = [200,300,500,1000,2000]
     # Loops through each frame rate for analysis.
-    columns = ['frame_rate', 'collisions', 'a_succ', 'c_succ', 'a_thruput', 'c_thruput']
-    data = list()
+    columns = ['scenario',
+               'frame_rate',
+               'collisions',
+               'a_succ',
+               'c_succ',
+               'a_thruput',
+               'c_thruput']
+    scenario1_csma = list()
+    scenario1_vcs = list()
+    scenario2_csma = list()
+    scenario2_vcs = list()
     for frame_rate in frame_rates:
-        data.append(Scenario1_CSMA(sim_params,frame_rate))
+        scenario1_csma.append(['Scenario A with  CSMA'] + Scenario1_CSMA(sim_params,frame_rate))
+        scenario1_vcs.append(['Scenario A with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
+        scenario2_csma.append(['Scenario B with CSMA'] + Scenario1_CSMA(sim_params,frame_rate))
+        scenario2_vcs.append(['Scenario B with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
+    data = scenario1_csma + scenario1_vcs + scenario2_csma + scenario2_vcs
     df = pd.DataFrame(data=data, columns=columns)
     plot_wrapper(df)
 
 
 def Scenario1_CSMA(sim_params, frame_rate):
     
-    A = Node(sim_params, frame_rate, seed=3)
-    C = Node(sim_params, frame_rate, seed=5)
+    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
     channel = Channel(sim_params)
     collisions = 0
     a_succ = 0
