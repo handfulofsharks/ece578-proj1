@@ -5,22 +5,24 @@ from channel import Channel
 from node import Node, State
 import pandas as pd
 
+from plot_wrapper import plot_wrapper
+
 def wrapper(sim_params):
     # Frame rates are declared in project outline.
     frame_rates = [200,300,500,1000,2000]
     # Loops through each frame rate for analysis.
-    columns = ['frame_rate', 'collisions', 'a_succ', 'c_succ']
+    columns = ['frame_rate', 'collisions', 'a_succ', 'c_succ', 'a_thruput', 'c_thruput']
     data = list()
     for frame_rate in frame_rates:
         data.append(Scenario1_CSMA(sim_params,frame_rate))
     df = pd.DataFrame(data=data, columns=columns)
-    import pdb; pdb.set_trace()
+    plot_wrapper(df)
 
 
 def Scenario1_CSMA(sim_params, frame_rate):
     
     A = Node(sim_params, frame_rate, seed=3)
-    C = Node(sim_params, frame_rate, seed=3)
+    C = Node(sim_params, frame_rate, seed=5)
     channel = Channel(sim_params)
     collisions = 0
     a_succ = 0
@@ -107,8 +109,10 @@ def Scenario1_CSMA(sim_params, frame_rate):
             C.queue.get()
             A.difs_duration = 2
             C.difs_duration = 2
-    
-    return [frame_rate, collisions, a_succ, c_succ]
+
+    a_thruput = 8*(a_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
+    c_thruput = 8*(c_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
 
 
 class Sim_Params():
@@ -118,7 +122,7 @@ class Sim_Params():
         # parses command line inputs.
         inputs = self.parseArgs(parser)
         # assigns inputs from parseArgs function to class members
-        self.frame_size_byte = inputs.frame_size_bytes
+        self.frame_size_bytes = inputs.frame_size_bytes
         self.frame_size_slots = inputs.frame_size_slots
         self.ACK_dur = inputs.ACK_dur
         self.slot_dur_us = inputs.slot_dur_us
