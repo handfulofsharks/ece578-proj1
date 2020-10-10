@@ -1,6 +1,6 @@
 import distrib
 import numpy as np
-import queue
+from queue import Queue
 from enum import Enum
 class State(Enum):
     idle = 0
@@ -11,6 +11,7 @@ class State(Enum):
 class Node:
 
     def __init__(self, seed=None):
+        self.backoff = None
         self.difs_duration = 2
         self.cw_0 = 4
         self.cw = self.cw_0
@@ -18,7 +19,7 @@ class Node:
         self.frame_distribution = distrib.generateDistribution(200, 10, seed=seed)
         self.frame_idx = 0
         self.state = State.idle
-        self.queue = queue.Queue()
+        self.queue = Queue(maxsize=len(self.frame_distribution))
 
     def check_packet_ready(self, slot):
         if slot == self.frame_distribution[self.frame_idx]:
