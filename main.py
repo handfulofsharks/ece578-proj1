@@ -17,7 +17,7 @@ def wrapper(sim_params):
     import pdb; pdb.set_trace()
 
 
-def main(sim_params, frame_rate):
+def Scenario1_CSMA(sim_params, frame_rate):
     
     A = Node(sim_params, frame_rate, seed=3)
     C = Node(sim_params, frame_rate, seed=3)
