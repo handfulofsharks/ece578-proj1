@@ -1,4 +1,4 @@
-import distrib
+from distrib import generateDistribution as gen_dist
 import numpy as np
 from queue import Queue
 from enum import Enum
@@ -10,13 +10,16 @@ class State(Enum):
 
 class Node:
 
-    def __init__(self, seed=None):
+    def __init__(self, sim_params, frame_rate, seed=None):
+        self.ack = sim_params.ACK_dur
         self.backoff = None
-        self.difs_duration = 2
-        self.cw_0 = 4
+        self.difs_duration = sim_params.DIFS_dur
+        self.cw_0 = sim_params.CW_0
         self.cw = self.cw_0
-        self.sifs_duration = 2
-        self.frame_distribution = distrib.generateDistribution(200, 10, seed=seed)
+        self.sifs_duration = sim_params.SIFS_dur
+        self.frame_distribution = gen_dist(frame_rate,
+                                           sim_params.max_sim_time_sec,
+                                           seed=seed)
         self.frame_idx = 0
         self.state = State.idle
         self.queue = Queue(maxsize=len(self.frame_distribution))

@@ -13,7 +13,6 @@ import math
 # returns:
 # x = list of slots for transmission
 def generateDistribution(l, t, t_slot=10e-6, seed=None):
-    np.random.seed(seed)
     u = np.random.uniform(size=(l*t))
     x = [-(1/l) * math.log(1-i) for i in u]
     x = [math.ceil(i/t_slot) for i in x]
