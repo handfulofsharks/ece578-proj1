@@ -45,8 +45,6 @@ for slot in range(0, max_slots):
                 if A.backoff <= 0:
                     #transmit
                     A.state = State.transmitting
-                    a_succ += 1
-                    A.backoff = None
     if C.state == State.waiting_to_transmit:
         if channel.is_idle:
             C.difs_duration -= 1
@@ -56,8 +54,6 @@ for slot in range(0, max_slots):
             C.backoff -= 1
             if C.backoff <= 0:
                 C.state = State.transmitting
-                c_succ += 1
-                C.backoff = None
                 
     if A.state == State.transmitting and C.state == State.transmitting:
         #collision
@@ -67,7 +63,17 @@ for slot in range(0, max_slots):
         C.cw = C.cw * 2
         collisions += 1
         C.backoff = None
-    if A.state == State.transmitting or C.state == State.transmitting:
+    elif A.state == State.transmitting and not C.state == State.transmitting:
         channel.is_idle = False
+        A.backoff = None
+        a_succ += 1
+        A.cw = A.cw_0
+        C.cw = C.cw_0
+    elif not A.state == State.transmitting and C.state == State.transmitting:
+        channel.is_idle = False
+        C.backoff = None
+        c_succ += 1
+        A.cw = A.cw_0
+        C.cw = C.cw_0
 
 import pdb; pdb.set_trace()
