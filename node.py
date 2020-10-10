@@ -27,7 +27,8 @@ class Node:
     def check_packet_ready(self, slot):
         if slot == self.frame_distribution[self.frame_idx]:
             self.queue.put(slot)
-            self.frame_idx += 1
+            if self.frame_idx < len(self.frame_distribution) - 1:
+                self.frame_idx += 1 
         if self.state == State.transmitting:
             return
         elif not self.queue.empty() and self.state != State.waiting_to_transmit:
