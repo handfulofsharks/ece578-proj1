@@ -12,7 +12,7 @@ def wrapper(sim_params):
     columns = ['frame_rate', 'collisions', 'a_succ', 'c_succ']
     data = list()
     for frame_rate in frame_rates:
-        data.append(main(sim_params,frame_rate))
+        data.append(Scenario1_CSMA(sim_params,frame_rate))
     df = pd.DataFrame(data=data, columns=columns)
     import pdb; pdb.set_trace()
 
