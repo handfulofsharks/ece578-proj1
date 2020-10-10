@@ -15,6 +15,7 @@ class Node:
         self.backoff = None
         self.difs_duration = sim_params.DIFS_dur
         self.cw_0 = sim_params.CW_0
+        self.cw_max = sim_params.CW_max
         self.cw = self.cw_0
         self.sifs_duration = sim_params.SIFS_dur
         self.frame_distribution = gen_dist(frame_rate,
@@ -37,4 +38,5 @@ class Node:
             self.state = State.idle
 
     def calc_backoff(self):
-        self.backoff = np.random.randint(0, self.cw-1)
+        temp_cw = min(self.cw, self.cw_max)
+        self.backoff = np.random.randint(0, temp_cw-1)
