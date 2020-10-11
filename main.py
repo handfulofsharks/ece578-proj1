@@ -25,7 +25,7 @@ def wrapper(sim_params):
     scenario2_vcs = list()
     for frame_rate in frame_rates:
         scenario1_csma.append(['Scenario A with  CSMA'] + Scenario1_CSMA(sim_params,frame_rate))
-        # scenario1_vcs.append(['Scenario A with VCS'] + Scenario1_VCS(sim_params,frame_rate))
+        scenario1_vcs.append(['Scenario A with VCS'] + Scenario1_VCS(sim_params,frame_rate))
         scenario2_csma.append(['Scenario B with CSMA'] + Scenario2_CSMA(sim_params,frame_rate))
         # scenario2_vcs.append(['Scenario B with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
     data = scenario1_csma + scenario1_vcs + scenario2_csma + scenario2_vcs
@@ -290,6 +290,7 @@ def Scenario2_CSMA(sim_params, frame_rate):
                 if C.transmit_count <= 0:
                     C.valid = False
                     C.collision()
+                collisions += 1
 
         if A.state == State.transmitting:
             if A.transmit_count <= 0:

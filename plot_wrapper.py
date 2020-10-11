@@ -1,8 +1,8 @@
 import seaborn as sns
 from matplotlib import pyplot as plt
 import matplotlib as mpl
-mpl.rcParams['figure.dpi']= 300
-mpl.rc("savefig", dpi=300)
+mpl.rcParams['figure.dpi']= 150
+mpl.rc("savefig", dpi=150)
 
 def plot_wrapper(df):
     for metric in get_metrics(df):
@@ -17,7 +17,7 @@ def plot_metrics(df, metric):
     elif metric == 'c_succ':
         label_replacement = 'Sender C Successes (num)'
     elif metric == 'a_thruput':
-        label_replacement = 'Sender C Throughput (Kib/sec)'
+        label_replacement = 'Sender A Throughput (Kib/sec)'
     elif metric == 'c_thruput':
         label_replacement = 'Sender C Throughput (Kib/sec)'
     
