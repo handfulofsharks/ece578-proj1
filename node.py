@@ -24,6 +24,8 @@ class Node:
         self.frame_idx = 0
         self.state = State.idle
         self.queue = Queue(maxsize=len(self.frame_distribution))
+        self.transmit_count = 0
+        self.valid = True
 
     def check_packet_ready(self, slot):
         if slot == self.frame_distribution[self.frame_idx]:

@@ -25,9 +25,9 @@ def wrapper(sim_params):
     scenario2_vcs = list()
     for frame_rate in frame_rates:
         scenario1_csma.append(['Scenario A with  CSMA'] + Scenario1_CSMA(sim_params,frame_rate))
-        scenario1_vcs.append(['Scenario A with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
-        scenario2_csma.append(['Scenario B with CSMA'] + Scenario1_CSMA(sim_params,frame_rate))
-        scenario2_vcs.append(['Scenario B with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
+        # scenario1_vcs.append(['Scenario A with VCS'] + Scenario1_VCS(sim_params,frame_rate))
+        scenario2_csma.append(['Scenario B with CSMA'] + Scenario2_CSMA(sim_params,frame_rate))
+        # scenario2_vcs.append(['Scenario B with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
     data = scenario1_csma + scenario1_vcs + scenario2_csma + scenario2_vcs
     df = pd.DataFrame(data=data, columns=columns)
     plot_wrapper(df)
@@ -127,6 +127,98 @@ def Scenario1_CSMA(sim_params, frame_rate):
     a_thruput = 8*(a_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
     c_thruput = 8*(c_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
     return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
+
+def Scenario1_VCS(sim_params, frame_rate):
+    return
+
+def Scenario2_CSMA(sim_params, frame_rate):
+    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    collisions = 0
+    a_succ = 0
+    c_succ = 0
+
+    #number of slots for 10 seconds
+    max_slots = math.ceil(sim_params.max_sim_time_sec/sim_params.slot_dur_us)
+    
+    for slot in range(0, max_slots):
+        A.check_packet_ready(slot)
+        C.check_packet_ready(slot)
+
+        if A.state == State.ready_to_transmit:
+            if A.backoff is None:
+                A.calc_backoff()
+            A.state = State.waiting_to_transmit
+        if C.state == State.ready_to_transmit:
+            if C.backoff is None:
+                C.calc_backoff()
+            C.state = State.waiting_to_transmit
+        
+        if A.state == State.waiting_to_transmit:
+            #DIFS is always decremented because A cannot see C so it always beleives channel is idle
+            A.difs_duration -= 1
+            if A.difs_duration <= 0:
+                A.backoff -= 1
+                if A.backoff <= 0:
+                    A.state = State.transmitting
+                    A.transmit_count = sim_params.frame_size_slots + sim_params.SIFS_dur + sim_params.ACK_dur
+
+        if C.state == State.waiting_to_transmit:
+            #DIFS is always decremented because A cannot see C so it always beleives channel is idle
+            C.difs_duration -= 1
+            if C.difs_duration <= 0:
+                C.backoff -= 1
+                if C.backoff <= 0:
+                    C.state = State.transmitting
+                    C.transmit_count = sim_params.frame_size_slots + sim_params.SIFS_dur + sim_params.ACK_dur
+
+        if A.state == State.transmitting:
+            A.transmit_count -= 1
+            if A.transmit_count <= 0:
+                if A.valid:
+                   a_succ += 1
+                   A.queue.get() 
+                   A.cw = A.cw_0
+                   A.state = State.idle
+                   A.difs_duration = 2
+                else:
+                    #collision
+                    A.state = State.idle
+                    A.difs_duration = 2
+                    A.cw = A.cw * 2
+                    A.backoff = None
+                    A.valid = True
+        if C.state == State.transmitting:
+            C.transmit_count -= 1
+            if C.transmit_count <= 0:
+                if C.valid:
+                   c_succ += 1
+                   C.queue.get() 
+                   C.cw = C.cw_0
+                   C.state = State.idle
+                   C.difs_duration = 2
+                else:
+                    #collision
+                    C.state = State.idle
+                    C.cw = C.cw * 2
+                    C.backoff = None
+                    C.difs_duration = 2
+                    C.valid = True
+
+        if A.state == State.transmitting and C.state == State.transmitting:
+            if A.valid or C.valid:
+                collisions += 1
+                A.valid = False
+                C.valid = False
+
+    a_thruput = 8*(a_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
+    c_thruput = 8*(c_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
+
+def Scenario2_VCS(sim_params, frame_rate):
+    return
+            
+
 
 
 class Sim_Params():
