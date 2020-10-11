@@ -1,5 +1,8 @@
 import seaborn as sns
 from matplotlib import pyplot as plt
+import matplotlib as mpl
+mpl.rcParams['figure.dpi']= 300
+mpl.rc("savefig", dpi=300)
 
 def plot_wrapper(df):
     for metric in get_metrics(df):
@@ -7,7 +10,21 @@ def plot_wrapper(df):
     
     
 def plot_metrics(df, metric):
+    if metric == 'collisions':
+        label_replacement = 'Collisions (num)'
+    elif metric == 'a_succ':
+        label_replacement = 'Sender A Successes (num)'
+    elif metric == 'c_succ':
+        label_replacement = 'Sender C Successes (num)'
+    elif metric == 'a_thruput':
+        label_replacement = 'Sender C Throughput (Kib/sec)'
+    elif metric == 'c_thruput':
+        label_replacement = 'Sender C Throughput (Kib/sec)'
+    
     ax = sns.lineplot(data=df,x="frame_rate",y=metric, hue="scenario")
+    ax.set_title(f'{label_replacement.split(" (")[0]} as a Function of Frame Rate')
+    ax.set_ylabel(f'{label_replacement}')
+    ax.set_xlabel('Frame Rate (frames/sec)')
     plt.grid(None)
     plt.show()
     
