@@ -161,7 +161,7 @@ def Scenario2_CSMA(sim_params, frame_rate):
                 A.backoff -= 1
                 if A.backoff <= 0:
                     A.state = State.transmitting
-                    A.transmit_count = 53
+                    A.transmit_count = sim_params.frame_size_slots + sim_params.SIFS_dur + sim_params.ACK_dur
 
         if C.state == State.waiting_to_transmit:
             #DIFS is always decremented because A cannot see C so it always beleives channel is idle
@@ -170,7 +170,7 @@ def Scenario2_CSMA(sim_params, frame_rate):
                 C.backoff -= 1
                 if C.backoff <= 0:
                     C.state = State.transmitting
-                    C.transmit_count = 53
+                    C.transmit_count = sim_params.frame_size_slots + sim_params.SIFS_dur + sim_params.ACK_dur
 
         if A.state == State.transmitting:
             A.transmit_count -= 1
@@ -180,6 +180,7 @@ def Scenario2_CSMA(sim_params, frame_rate):
                    A.queue.get() 
                    A.cw = A.cw_0
                    A.state = State.idle
+                   A.difs_duration = 2
                 else:
                     #collision
                     A.state = State.idle
@@ -195,6 +196,7 @@ def Scenario2_CSMA(sim_params, frame_rate):
                    C.queue.get() 
                    C.cw = C.cw_0
                    C.state = State.idle
+                   C.difs_duration = 2
                 else:
                     #collision
                     C.state = State.idle
