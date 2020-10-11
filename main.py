@@ -284,12 +284,8 @@ def Scenario2_CSMA(sim_params, frame_rate):
 
         if A.state == State.transmitting and C.state == State.transmitting:
             if A.valid or C.valid:
-                if A.transmit_count <= 0:
-                    A.valid = False
-                    A.collision()
-                if C.transmit_count <= 0:
-                    C.valid = False
-                    C.collision()
+                A.valid = False 
+                C.valid = False
                 collisions += 1
 
         if A.state == State.transmitting:
@@ -298,6 +294,8 @@ def Scenario2_CSMA(sim_params, frame_rate):
                    a_succ += 1
                    A.queue.get()
                    A.reset_node()
+                else:
+                    A.collision()
                    
         if C.state == State.transmitting:
             if C.transmit_count <= 0:
@@ -305,6 +303,8 @@ def Scenario2_CSMA(sim_params, frame_rate):
                    c_succ += 1
                    C.queue.get()
                    C.reset_node()
+                else:
+                    C.collision()
                    
     a_thruput = get_throughput_bits(a_succ,
                                     sim_params.frame_size_bytes,
