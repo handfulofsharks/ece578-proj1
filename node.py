@@ -28,7 +28,6 @@ class Node:
         self.transmit_count = 0
         self.valid = True
 
-
     def check_packet_ready(self, slot):
         if slot == self.frame_distribution[self.frame_idx]:
             self.queue.put(slot)
@@ -38,9 +37,6 @@ class Node:
             return
         elif not self.queue.empty() and self.state != State.waiting_to_transmit:
             self.state = State.ready_to_transmit
-        # else:
-        #     self.state = State.idle
-
 
     def calc_backoff(self):
         temp_cw = min(self.cw, self.cw_max)
