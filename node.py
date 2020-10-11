@@ -2,6 +2,7 @@ import math
 import numpy as np
 from queue import Queue
 from enum import Enum
+
 class State(Enum):
     idle = 0
     ready_to_transmit = 1
@@ -24,6 +25,9 @@ class Node:
         self.frame_idx = 0
         self.state = State.idle
         self.queue = Queue(maxsize=len(self.frame_distribution))
+        self.transmit_count = 0
+        self.valid = True
+
 
     def check_packet_ready(self, slot):
         if slot == self.frame_distribution[self.frame_idx]:
@@ -34,15 +38,34 @@ class Node:
             return
         elif not self.queue.empty() and self.state != State.waiting_to_transmit:
             self.state = State.ready_to_transmit
-        else:
-            self.state = State.idle
+        # else:
+        #     self.state = State.idle
+
 
     def calc_backoff(self):
         temp_cw = min(self.cw, self.cw_max)
         self.backoff = np.random.randint(0, temp_cw-1)
+        
+        
     def gen_dist(self, lam, t, t_slot=10e-6):
         u = np.random.uniform(size=(lam*t))
         x = [-(1/lam) * math.log(1-i) for i in u]
         x = [math.ceil(i/t_slot) for i in x]
         x = list(np.cumsum(x))
         return x
+    
+    def get_transmit_count(self, sim_params):
+        return sim_params.frame_size_slots + sim_params.SIFS_dur + sim_params.ACK_dur
+    
+    def collision(self):
+        self.state = State.idle
+        self.cw = self.cw * 2
+        self.backoff = None
+        self.difs_duration = 2
+        self.valid = True
+    
+    def reset_node(self):
+        self.cw = self.cw_0
+        self.state = State.idle
+        self.difs_duration = 2
+        self.backoff = None
