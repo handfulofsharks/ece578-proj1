@@ -300,9 +300,9 @@ def Scenario2_CSMA(sim_params, frame_rate):
         if C.state == State.transmitting:
             if C.transmit_count <= 0:
                 if C.valid:
-                   c_succ += 1
-                   C.queue.get()
-                   C.reset_node()
+                    c_succ += 1
+                    C.queue.get()
+                    C.reset_node()
                 else:
                     C.collision()
                    

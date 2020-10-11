@@ -38,8 +38,8 @@ class Node:
             return
         elif not self.queue.empty() and self.state != State.waiting_to_transmit:
             self.state = State.ready_to_transmit
-        else:
-            self.state = State.idle
+        # else:
+        #     self.state = State.idle
 
 
     def calc_backoff(self):
@@ -68,3 +68,4 @@ class Node:
         self.cw = self.cw_0
         self.state = State.idle
         self.difs_duration = 2
+        self.backoff = None
