@@ -27,7 +27,7 @@ def wrapper(sim_params):
         scenario1_csma.append(['Scenario A with  CSMA'] + Scenario1_CSMA(sim_params,frame_rate))
         scenario1_vcs.append(['Scenario A with VCS'] + Scenario1_VCS(sim_params,frame_rate))
         scenario2_csma.append(['Scenario B with CSMA'] + Scenario2_CSMA(sim_params,frame_rate))
-        # scenario2_vcs.append(['Scenario B with VCS'] + Scenario1_CSMA(sim_params,frame_rate))
+        scenario2_vcs.append(['Scenario B with VCS'] + Scenario2_VCS(sim_params,frame_rate))
     data = scenario1_csma + scenario1_vcs + scenario2_csma + scenario2_vcs
     df = pd.DataFrame(data=data, columns=columns)
     plot_wrapper(df)
@@ -235,8 +235,8 @@ def Scenario1_VCS(sim_params, frame_rate):
 
 
 def Scenario2_CSMA(sim_params, frame_rate):
-    A = Node(sim_params, frame_rate, seed=3)
-    C = Node(sim_params, frame_rate, seed=5)
+    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
     collisions = 0
     a_succ = 0
     c_succ = 0
@@ -318,7 +318,117 @@ def Scenario2_CSMA(sim_params, frame_rate):
 
 
 def Scenario2_VCS(sim_params, frame_rate):
-    return
+    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    collisions = 0
+    a_succ = 0
+    c_succ = 0
+
+    #number of slots for 10 seconds
+    max_slots = math.ceil(sim_params.max_sim_time_sec/sim_params.slot_dur_us)
+    
+    for slot in range(0, max_slots):
+        A.check_packet_ready(slot)
+        C.check_packet_ready(slot)
+
+        if A.state == State.waiting_NAV:
+            if A.NAV == slot:
+                A.state = State.idle
+
+        if C.state == State.waiting_NAV:
+            if C.NAV == slot:
+                C.state = State.idle
+
+        if A.state == State.transmitting:
+            A.transmit_count -= 1
+            if A.transmit_count <= 0:
+                a_succ += 1
+                A.queue.get()
+                A.reset_node()
+
+        if C.state == State.transmitting:
+            C.transmit_count -= 1
+            if C.transmit_count <= 0:
+                c_succ += 1
+                C.queue.get()
+                C.reset_node()
+
+        if A.state == State.ready_to_transmit:
+            if A.backoff is None:
+                A.calc_backoff()
+            A.state = State.waiting_to_transmit
+        if C.state == State.ready_to_transmit:
+            if C.backoff is None:
+                C.calc_backoff()
+            C.state = State.waiting_to_transmit
+        
+        if A.state == State.waiting_to_transmit:
+            # DIFS is always decremented because A cannot see C so it always 
+            # beleives channel is idle
+            A.difs_duration -= 1
+            if A.difs_duration <= 0:
+                A.backoff -= 1
+                if A.backoff <= 0:
+                    # A.state = State.transmitting
+                    # A.transmit_count = A.get_transmit_count(sim_params)
+                    A.state = State.sending_RTS
+                    A.RTS_end = A.get_NAV(sim_params) + slot
+                    A.CTS_count = 6
+
+        if C.state == State.waiting_to_transmit:
+            # DIFS is always decremented because A cannot see C so it always
+            # beleives channel is idle
+            C.difs_duration -= 1
+            if C.difs_duration <= 0:
+                C.backoff -= 1
+                if C.backoff <= 0:
+                    # C.state = State.transmitting
+                    # C.transmit_count = C.get_transmit_count(sim_params)
+                    C.state = State.sending_RTS
+                    C.RTS_end = C.get_NAV(sim_params) + slot
+                    C.CTS_count = 6
+                    
+        if A.state == State.sending_RTS and C.state == State.sending_RTS:
+            #collision
+            if A.valid or C.valid:
+                A.valid = False 
+                C.valid = False
+                collisions += 1
+
+        if A.state == State.sending_RTS and C.state != State.sending_RTS:
+            A.CTS_count -= 1
+            if A.CTS_count <= 0:
+                if A.valid:
+                    #set C nav vector
+                    C.state = State.waiting_NAV
+                    C.NAV = A.RTS_end
+                    A.state = State.transmitting
+                    A.transmit_count = A.get_transmit_count(sim_params)
+                else:
+                    #collision occured, reset A
+                    A.collision()
+
+        if A.state != State.sending_RTS and C.state == State.sending_RTS:
+            C.CTS_count -= 1
+            if C.CTS_count <= 0:
+                if C.valid:
+                    #set C nav vector
+                    A.state = State.waiting_NAV
+                    A.NAV = C.RTS_end
+                    C.state = State.transmitting
+                    C.transmit_count = C.get_transmit_count(sim_params)
+                else:
+                    C.collision()
+    a_thruput = get_throughput_bits(a_succ,
+                                sim_params.frame_size_bytes,
+                                sim_params.max_sim_time_sec,
+                                scale=10e3)
+    c_thruput = get_throughput_bits(c_succ,
+                                sim_params.frame_size_bytes,
+                                sim_params.max_sim_time_sec,
+                                scale=10e3)
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
+
             
 
 def get_throughput_bits(successes, byte_frame_size, sim_time, scale):

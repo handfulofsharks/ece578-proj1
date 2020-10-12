@@ -8,6 +8,8 @@ class State(Enum):
     ready_to_transmit = 1
     waiting_to_transmit = 2
     transmitting = 3
+    sending_RTS = 4
+    waiting_NAV = 5
 
 class Node:
 
@@ -27,6 +29,9 @@ class Node:
         self.queue = Queue(maxsize=len(self.frame_distribution))
         self.transmit_count = 0
         self.valid = True
+        self.RTS_end = 0
+        self.NAV = 0
+        self.CTS_count = 0
 
 
     def check_packet_ready(self, slot):
@@ -36,7 +41,7 @@ class Node:
                 self.frame_idx += 1 
         if self.state == State.transmitting:
             return
-        elif not self.queue.empty() and self.state != State.waiting_to_transmit:
+        elif not self.queue.empty() and not (self.state == State.waiting_to_transmit or self.state == State.sending_RTS):
             self.state = State.ready_to_transmit
         # else:
         #     self.state = State.idle
@@ -56,6 +61,8 @@ class Node:
     
     def get_transmit_count(self, sim_params):
         return sim_params.frame_size_slots + sim_params.SIFS_dur + sim_params.ACK_dur
+    def get_NAV(self, sim_params):
+        return 2 + sim_params.SIFS_dur + 2 + sim_params.SIFS_dur + self.get_transmit_count(sim_params)
     
     def collision(self):
         self.state = State.idle
