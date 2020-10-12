@@ -34,17 +34,15 @@ class Node:
         self.CTS_count = 0
 
 
-    def check_packet_ready(self, slot):
+    def check_packet_ready(self, slot, otherNode):
         if slot == self.frame_distribution[self.frame_idx]:
             self.queue.put(slot)
             if self.frame_idx < len(self.frame_distribution) - 1:
                 self.frame_idx += 1 
         if self.state == State.transmitting:
             return
-        elif not self.queue.empty() and not (self.state == State.waiting_to_transmit or self.state == State.sending_RTS):
+        elif not self.queue.empty() and not (self.state == State.waiting_to_transmit or self.state == State.sending_RTS) and not otherNode.transmit_count >1:
             self.state = State.ready_to_transmit
-        # else:
-        #     self.state = State.idle
 
 
     def calc_backoff(self):
@@ -76,3 +74,4 @@ class Node:
         self.state = State.idle
         self.difs_duration = 2
         self.backoff = None
+        self.valid = True

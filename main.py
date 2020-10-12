@@ -1,7 +1,6 @@
 import argparse
 import math
 
-import numpy as np
 import pandas as pd
 
 from channel import Channel
@@ -11,14 +10,17 @@ from plot_wrapper import plot_wrapper
 def wrapper(sim_params):
     # Frame rates are declared in project outline.
     frame_rates = [200,300,500,1000,2000]
+    # frame_rates = list(range(200,2010))
+    # frame_rates = frame_rates[0::10]
     # Loops through each frame rate for analysis.
     columns = ['scenario',
-               'frame_rate',
-               'collisions',
-               'a_succ',
-               'c_succ',
-               'a_thruput',
-               'c_thruput']
+                'frame_rate',
+                'collisions',
+                'a_succ',
+                'c_succ',
+                'a_thruput',
+                'c_thruput',
+                'fairness_index']
     scenario1_csma = list()
     scenario1_vcs = list()
     scenario2_csma = list()
@@ -47,8 +49,8 @@ def Scenario1_CSMA(sim_params, frame_rate):
     
     for slot in range(0, max_slots):
         #checks if a packet is ready for transmit and adds it to queue
-        A.check_packet_ready(slot)
-        C.check_packet_ready(slot)
+        A.check_packet_ready(slot, C)
+        C.check_packet_ready(slot, A)
         if not channel.is_idle:
             channel.idle_count -= 1
             if channel.idle_count <= 0:
@@ -132,12 +134,14 @@ def Scenario1_CSMA(sim_params, frame_rate):
                                     sim_params.frame_size_bytes,
                                     sim_params.max_sim_time_sec,
                                     scale=10e3)
-    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
+    
+    fairness_index = get_fairness_index(a_succ,c_succ,max_slots,sim_params)
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput, fairness_index]
 
 
 def Scenario1_VCS(sim_params, frame_rate):
-    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
-    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    A = Node(sim_params, frame_rate, seed=3)
+    C = Node(sim_params, frame_rate, seed=5)
     channel = Channel(sim_params)
     collisions = 0
     a_succ = 0
@@ -148,8 +152,8 @@ def Scenario1_VCS(sim_params, frame_rate):
     
     for slot in range(0, max_slots):
         #checks if a packet is ready for transmit and adds it to queue
-        A.check_packet_ready(slot)
-        C.check_packet_ready(slot)
+        A.check_packet_ready(slot, C)
+        C.check_packet_ready(slot, A)
         if not channel.is_idle:
             channel.idle_count -= 1
             if channel.idle_count <= 0:
@@ -227,16 +231,23 @@ def Scenario1_VCS(sim_params, frame_rate):
             C.queue.get()
             A.difs_duration = 2
             C.difs_duration = 2
-
-    a_thruput = 8*(a_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
-    c_thruput = 8*(c_succ * sim_params.frame_size_bytes/sim_params.max_sim_time_sec)/10e3
-    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
-                        
+                   
+    a_thruput = get_throughput_bits(a_succ,
+                                    sim_params.frame_size_bytes,
+                                    sim_params.max_sim_time_sec,
+                                    scale=10e3)
+    c_thruput = get_throughput_bits(c_succ,
+                                    sim_params.frame_size_bytes,
+                                    sim_params.max_sim_time_sec,
+                                    scale=10e3)
+    
+    fairness_index = get_fairness_index(a_succ,c_succ,max_slots,sim_params)
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput, fairness_index]          
 
 
 def Scenario2_CSMA(sim_params, frame_rate):
-    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
-    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    A = Node(sim_params, frame_rate, seed=3)
+    C = Node(sim_params, frame_rate, seed=5)
     collisions = 0
     a_succ = 0
     c_succ = 0
@@ -245,8 +256,8 @@ def Scenario2_CSMA(sim_params, frame_rate):
     max_slots = math.ceil(sim_params.max_sim_time_sec/sim_params.slot_dur_us)
     
     for slot in range(0, max_slots):
-        A.check_packet_ready(slot)
-        C.check_packet_ready(slot)
+        A.check_packet_ready(slot, C)
+        C.check_packet_ready(slot, A)
 
         if A.state == State.ready_to_transmit:
             if A.backoff is None:
@@ -314,45 +325,25 @@ def Scenario2_CSMA(sim_params, frame_rate):
                                     sim_params.frame_size_bytes,
                                     sim_params.max_sim_time_sec,
                                     scale=10e3)
-    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
+    
+    fairness_index = get_fairness_index(a_succ,c_succ,max_slots,sim_params)
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput, fairness_index]
 
 
 def Scenario2_VCS(sim_params, frame_rate):
-    A = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
-    C = Node(sim_params, frame_rate, seed=np.random.randint(0,100))
+    
+    A = Node(sim_params, frame_rate, seed=3)
+    C = Node(sim_params, frame_rate, seed=5)
     collisions = 0
     a_succ = 0
     c_succ = 0
-
     #number of slots for 10 seconds
     max_slots = math.ceil(sim_params.max_sim_time_sec/sim_params.slot_dur_us)
     
     for slot in range(0, max_slots):
-        A.check_packet_ready(slot)
-        C.check_packet_ready(slot)
-
-        if A.state == State.waiting_NAV:
-            if A.NAV == slot:
-                A.state = State.idle
-
-        if C.state == State.waiting_NAV:
-            if C.NAV == slot:
-                C.state = State.idle
-
-        if A.state == State.transmitting:
-            A.transmit_count -= 1
-            if A.transmit_count <= 0:
-                a_succ += 1
-                A.queue.get()
-                A.reset_node()
-
-        if C.state == State.transmitting:
-            C.transmit_count -= 1
-            if C.transmit_count <= 0:
-                c_succ += 1
-                C.queue.get()
-                C.reset_node()
-
+        A.check_packet_ready(slot, C)
+        C.check_packet_ready(slot, A)
+        
         if A.state == State.ready_to_transmit:
             if A.backoff is None:
                 A.calc_backoff()
@@ -369,8 +360,6 @@ def Scenario2_VCS(sim_params, frame_rate):
             if A.difs_duration <= 0:
                 A.backoff -= 1
                 if A.backoff <= 0:
-                    # A.state = State.transmitting
-                    # A.transmit_count = A.get_transmit_count(sim_params)
                     A.state = State.sending_RTS
                     A.RTS_end = A.get_NAV(sim_params) + slot
                     A.CTS_count = 6
@@ -382,8 +371,6 @@ def Scenario2_VCS(sim_params, frame_rate):
             if C.difs_duration <= 0:
                 C.backoff -= 1
                 if C.backoff <= 0:
-                    # C.state = State.transmitting
-                    # C.transmit_count = C.get_transmit_count(sim_params)
                     C.state = State.sending_RTS
                     C.RTS_end = C.get_NAV(sim_params) + slot
                     C.CTS_count = 6
@@ -394,6 +381,8 @@ def Scenario2_VCS(sim_params, frame_rate):
                 A.valid = False 
                 C.valid = False
                 collisions += 1
+                A.collision()
+                C.collision()
 
         if A.state == State.sending_RTS and C.state != State.sending_RTS:
             A.CTS_count -= 1
@@ -401,12 +390,9 @@ def Scenario2_VCS(sim_params, frame_rate):
                 if A.valid:
                     #set C nav vector
                     C.state = State.waiting_NAV
-                    C.NAV = A.RTS_end
+                    C.NAV = A.RTS_end -1
                     A.state = State.transmitting
                     A.transmit_count = A.get_transmit_count(sim_params)
-                else:
-                    #collision occured, reset A
-                    A.collision()
 
         if A.state != State.sending_RTS and C.state == State.sending_RTS:
             C.CTS_count -= 1
@@ -414,27 +400,55 @@ def Scenario2_VCS(sim_params, frame_rate):
                 if C.valid:
                     #set C nav vector
                     A.state = State.waiting_NAV
-                    A.NAV = C.RTS_end
+                    A.NAV = C.RTS_end-1
                     C.state = State.transmitting
                     C.transmit_count = C.get_transmit_count(sim_params)
-                else:
-                    C.collision()
+                    
+        if A.state == State.waiting_NAV:
+            if A.NAV == slot:
+                A.state = State.idle
+
+        if C.state == State.waiting_NAV:
+            if C.NAV == slot:
+                C.state = State.idle
+        
+        if A.state == State.transmitting:
+            A.transmit_count -= 1
+            if A.transmit_count <= 0:
+                a_succ += 1
+                A.queue.get()
+                A.reset_node()
+
+        if C.state == State.transmitting:
+            C.transmit_count -= 1
+            if C.transmit_count <= 0:
+                c_succ += 1
+                C.queue.get()
+                C.reset_node()
+                   
     a_thruput = get_throughput_bits(a_succ,
-                                sim_params.frame_size_bytes,
-                                sim_params.max_sim_time_sec,
-                                scale=10e3)
+                                    sim_params.frame_size_bytes,
+                                    sim_params.max_sim_time_sec,
+                                    scale=10e3)
     c_thruput = get_throughput_bits(c_succ,
-                                sim_params.frame_size_bytes,
-                                sim_params.max_sim_time_sec,
-                                scale=10e3)
-    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput]
+                                    sim_params.frame_size_bytes,
+                                    sim_params.max_sim_time_sec,
+                                    scale=10e3)
+    
+    fairness_index = get_fairness_index(a_succ,c_succ,max_slots,sim_params)
+    return [frame_rate, collisions, a_succ, c_succ, a_thruput, c_thruput, fairness_index]
 
             
-
 def get_throughput_bits(successes, byte_frame_size, sim_time, scale):
     return 8*(successes * byte_frame_size/sim_time)/scale
 
 
+def get_fairness_index(a_succ,c_succ,max_slots,sim_params):
+    a_perc = (a_succ*sim_params.frame_size_slots)/max_slots
+    c_perc = (c_succ*sim_params.frame_size_slots)/max_slots
+    return a_perc/c_perc
+    
+    
 class Sim_Params():
     def __init__(self):
         description = 'command line inputs for lhs design'
